@@ -183,14 +183,14 @@ Include enough context from both perspectives so the user can make an informed d
    - Merge workflow sections (deduplicate shared steps)
    - Combine reference files and scripts
 5. Remove the absorbed skill directory
-6. Validate: `python3 ~/.claude/skills/create-skill/scripts/quick_validate.py C`
+6. Validate: run `quick_validate.py C` from the create-skill skill (`~/.claude/skills/create-skill/`)
 
 #### Split Procedure (X → Y + Z)
 
 1. Archive original: `cp -r X .archived/X-$(date +%Y%m%d)`
 2. Create new skill directory for the split-off portion
 3. Partition trigger phrases — no overlapping triggers between Y and Z
-4. Move relevant scripts/references to each side
+4. Move relevant scripts and references to each side
 5. Validate both Y and Z
 
 #### Retire Procedure
