@@ -6,14 +6,22 @@ description: >-
   "整理 skills", "收斂 skills", "skill 太多了", "哪些 skill 可以合併",
   mentions skill redundancy, or discusses reviewing, reorganizing,
   merging, or splitting their skill inventory.
-version: 0.2.0
-tools: Read, Glob, Grep, Bash, Edit, Write, Task
+version: 0.3.0
+tools: Read, Glob, Grep, Bash, Edit, Write, Task, sandbox_execute
 ---
 
 # Skill Curator
 
 Analyze the skill inventory for overlaps and redundancies, use a 3-agent panel discussion
 to reach consensus on recommendations, then execute approved restructuring.
+
+## Agent Delegation
+
+Delegate skill scanning to `explorer` agent, evaluation to `reviewer` agent.
+
+```
+explorer (Haiku, maxTurns=10, tools: Read, Grep, Glob)
+```
 
 ## Guiding Philosophy
 
@@ -28,6 +36,21 @@ Principles:
 ## Workflow
 
 ### Step 1: Scan
+
+> **Sandbox acceleration**: Full inventory overlap analysis runs efficiently in `sandbox_execute`.
+>
+> Preferred (Sandbox):
+> ```python
+> import sys; sys.path.insert(0, '/Users/joneshong/.claude/skills/skill-curator/scripts')
+> import analyze
+> result = analyze.run(threshold=0.3)
+> output(result)
+> ```
+>
+> Fallback (Bash):
+> ```bash
+> python3 ~/.claude/skills/skill-curator/scripts/analyze.py --json --threshold 0.3
+> ```
 
 Run the overlap analysis to get clusters:
 
@@ -225,6 +248,15 @@ After all changes, re-run the analysis to confirm:
 | File format skills (pdf/docx/xlsx/pptx) | Usually keep separate (different domain objects) |
 | "Writing" family (content/marketing/docs) | Usually keep separate (different intent) |
 | Meta-skills (create/optimize/curate) | Usually keep separate (different lifecycle stages) |
+
+## Sandbox Optimization
+
+This skill is **sandbox-optimized**. Batch operations run inside `sandbox_execute`:
+
+- **Overlap analysis**: Import `scripts/analyze.py` in sandbox to compute similarity scores and cluster all skills in one deterministic pass
+- **Batch SKILL.md reading**: Read multiple skill frontmatter fields in sandbox to build comparison data without per-file tool calls
+
+Principle: **Deterministic batch work → sandbox; reasoning/presentation → LLM.**
 
 ## Continuous Improvement
 
