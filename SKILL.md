@@ -37,9 +37,9 @@ Principles:
 
 ### Step 1: Scan
 
-> **Sandbox acceleration**: Full inventory overlap analysis runs efficiently in `sandbox_execute`.
+> **Sandbox limitation**: `sandbox_execute` cannot access `~/.claude/` (path whitelist: `~/Claude/` + `/tmp/`). Full inventory overlap analysis must run via `Bash` instead.
 >
-> Preferred (Sandbox):
+> Non-functional (sandbox path blocked) — use Bash instead:
 > ```python
 > import sys; sys.path.insert(0, '/Users/joneshong/.claude/skills/skill-curator/scripts')
 > import analyze
@@ -251,12 +251,17 @@ After all changes, re-run the analysis to confirm:
 
 ## Sandbox Optimization
 
-This skill is **sandbox-optimized**. Batch operations run inside `sandbox_execute`:
+This skill **cannot use sandbox** for its primary operations (`~/.claude/` path is outside sandbox whitelist `~/Claude/` + `/tmp/`). Use `Bash` to run scripts:
 
-- **Overlap analysis**: Import `scripts/analyze.py` in sandbox to compute similarity scores and cluster all skills in one deterministic pass
-- **Batch SKILL.md reading**: Read multiple skill frontmatter fields in sandbox to build comparison data without per-file tool calls
+- **Overlap analysis**: Run via Bash: `python3 ~/.claude/skills/skill-curator/scripts/analyze.py` — compute similarity scores and cluster all skills in one deterministic pass
+- **Batch SKILL.md reading**: Run via Bash to read multiple skill frontmatter fields and build comparison data without per-file tool calls
 
 Principle: **Deterministic batch work → sandbox; reasoning/presentation → LLM.**
+
+
+## Integration
+
+- **synergy-weaver** — Curator cleans duplicates, weaver connects gaps — complementary
 
 ## Continuous Improvement
 
