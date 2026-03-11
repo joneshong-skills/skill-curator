@@ -8,18 +8,26 @@ Output: Markdown report (default) or JSON with overlap clusters,
 trigger phrase collisions, and tool profile similarities.
 """
 
+import argparse
+import json
 import os
 import re
 import sys
-import json
-import argparse
-from pathlib import Path
 from collections import defaultdict
 from itertools import combinations
-from typing import Optional, Dict, List, Set
+from pathlib import Path
+
+# Import cold-skill description fallback
+sys.path.insert(0, os.path.expanduser("~/.claude/data/skill-index"))
+try:
+    from resolve_description import resolve_from_frontmatter
+except ImportError:
+
+    def resolve_from_frontmatter(fm, name):
+        return fm.get("description", "")
 
 
-def parse_frontmatter(skill_path: Path) -> Optional[dict]:
+def parse_frontmatter(skill_path: Path) -> dict | None:
     """Extract YAML frontmatter from SKILL.md (simple parser, no deps)."""
     skill_md = skill_path / "SKILL.md"
     if not skill_md.exists():
@@ -55,63 +63,179 @@ def parse_frontmatter(skill_path: Path) -> Optional[dict]:
         fm[current_key] = " ".join(current_val_lines).strip()
 
     # Parse body line count (after frontmatter)
-    body = text[m.end():]
+    body = text[m.end() :]
     fm["_body_lines"] = len(body.strip().split("\n")) if body.strip() else 0
     fm["_path"] = str(skill_path)
 
     return fm
 
 
-def extract_triggers(description: str) -> List[str]:
+def extract_triggers(description: str) -> list[str]:
     """Pull quoted trigger phrases from description."""
     return re.findall(r'"([^"]+)"', description)
 
 
-def extract_keywords(description: str) -> Set[str]:
+def extract_keywords(description: str) -> set[str]:
     """Extract meaningful words (>3 chars, lowercase) from description."""
     words = re.findall(r"[a-zA-Z\u4e00-\u9fff]{2,}", description.lower())
     stopwords = {
         # --- English stopwords ---
         # Articles & conjunctions
-        "the", "an", "and", "or", "but",
+        "the",
+        "an",
+        "and",
+        "or",
+        "but",
         # Prepositions
-        "in", "on", "at", "to", "for", "of", "with", "by", "from",
-        "into", "about", "after", "before", "over",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "of",
+        "with",
+        "by",
+        "from",
+        "into",
+        "about",
+        "after",
+        "before",
+        "over",
         # Be / auxiliaries
-        "is", "are", "was", "were", "be", "been", "being",
-        "have", "has", "had", "do", "does", "did",
-        "will", "would", "could", "should", "may", "might", "can",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "can",
         # Pronouns & demonstratives
-        "this", "that", "these", "those", "it", "its",
-        "they", "them", "their",
+        "this",
+        "that",
+        "these",
+        "those",
+        "it",
+        "its",
+        "they",
+        "them",
+        "their",
         # Negation / logic
-        "not", "no", "if", "then", "than", "so", "as",
+        "not",
+        "no",
+        "if",
+        "then",
+        "than",
+        "so",
+        "as",
         # Adverbs / quantifiers
-        "also", "just", "only", "very", "more", "most",
-        "some", "any", "all", "each", "every", "both",
-        "few", "many", "much", "such",
+        "also",
+        "just",
+        "only",
+        "very",
+        "more",
+        "most",
+        "some",
+        "any",
+        "all",
+        "each",
+        "every",
+        "both",
+        "few",
+        "many",
+        "much",
+        "such",
         # Other common function words
-        "other", "another", "same", "different", "new",
-        "when", "how", "what", "which", "who", "where", "why",
+        "other",
+        "another",
+        "same",
+        "different",
+        "new",
+        "when",
+        "how",
+        "what",
+        "which",
+        "who",
+        "where",
+        "why",
         # Common verbs that don't carry domain meaning
-        "use", "used", "using", "make", "like",
+        "use",
+        "used",
+        "using",
+        "make",
+        "like",
         # Common nouns in skill descriptions (too generic to differentiate)
-        "user", "users", "skill", "skills", "tool", "tools",
-        "file", "files",
+        "user",
+        "users",
+        "skill",
+        "skills",
+        "tool",
+        "tools",
+        "file",
+        "files",
         # Words frequently found in SKILL.md trigger-phrase boilerplate
-        "asks", "mentions", "discusses", "including", "provides",
+        "asks",
+        "mentions",
+        "discusses",
+        "including",
+        "provides",
         # --- Chinese stopwords (繁體) ---
-        "的", "是", "在", "了", "和", "與", "或", "也", "都",
-        "不", "有", "這", "那", "就", "要", "會",
-        "可以", "可", "能", "把", "讓", "被",
-        "對", "從", "到", "做", "用", "使用", "需要",
-        "一個", "這個", "那個",
-        "如果", "當", "時", "進行", "以及", "等", "及",
+        "的",
+        "是",
+        "在",
+        "了",
+        "和",
+        "與",
+        "或",
+        "也",
+        "都",
+        "不",
+        "有",
+        "這",
+        "那",
+        "就",
+        "要",
+        "會",
+        "可以",
+        "可",
+        "能",
+        "把",
+        "讓",
+        "被",
+        "對",
+        "從",
+        "到",
+        "做",
+        "用",
+        "使用",
+        "需要",
+        "一個",
+        "這個",
+        "那個",
+        "如果",
+        "當",
+        "時",
+        "進行",
+        "以及",
+        "等",
+        "及",
     }
     return {w for w in words if w not in stopwords}
 
 
-def extract_tools(fm: dict) -> Set[str]:
+def extract_tools(fm: dict) -> set[str]:
     """Extract tool list from frontmatter."""
     tools_str = fm.get("tools", "")
     if not tools_str:
@@ -126,7 +250,7 @@ def jaccard(a: set, b: set) -> float:
     return len(a & b) / len(a | b)
 
 
-def compute_overlap(skills: Dict[str, dict]) -> List[dict]:
+def compute_overlap(skills: dict[str, dict]) -> list[dict]:
     """Compute pairwise overlap scores between all skills."""
     results = []
     names = sorted(skills.keys())
@@ -153,20 +277,22 @@ def compute_overlap(skills: Dict[str, dict]) -> List[dict]:
         composite = kw_sim * 0.5 + tool_sim * 0.2 + (0.3 if trig_overlap else 0)
 
         if composite > 0.15:  # threshold
-            results.append({
-                "pair": [a, b],
-                "composite": round(composite, 3),
-                "keyword_sim": round(kw_sim, 3),
-                "tool_sim": round(tool_sim, 3),
-                "trigger_overlap": sorted(trig_overlap),
-                "shared_keywords": sorted(kw_a & kw_b)[:10],
-            })
+            results.append(
+                {
+                    "pair": [a, b],
+                    "composite": round(composite, 3),
+                    "keyword_sim": round(kw_sim, 3),
+                    "tool_sim": round(tool_sim, 3),
+                    "trigger_overlap": sorted(trig_overlap),
+                    "shared_keywords": sorted(kw_a & kw_b)[:10],
+                }
+            )
 
     results.sort(key=lambda x: x["composite"], reverse=True)
     return results
 
 
-def find_clusters(overlaps: List[dict], threshold: float = 0.25) -> List[set]:
+def find_clusters(overlaps: list[dict], threshold: float = 0.25) -> list[set]:
     """Group skills into clusters based on overlap scores (union-find)."""
     parent = {}
 
@@ -221,13 +347,9 @@ def generate_report(skills: dict, overlaps: list, clusters: list) -> str:
                         f"tools={o['tool_sim']}"
                     )
                     if o["trigger_overlap"]:
-                        lines.append(
-                            f"  - Shared triggers: {', '.join(o['trigger_overlap'])}"
-                        )
+                        lines.append(f"  - Shared triggers: {', '.join(o['trigger_overlap'])}")
                     if o["shared_keywords"]:
-                        lines.append(
-                            f"  - Shared keywords: {', '.join(o['shared_keywords'][:8])}"
-                        )
+                        lines.append(f"  - Shared keywords: {', '.join(o['shared_keywords'][:8])}")
             lines.append("")
 
     # Top overlaps outside clusters
@@ -286,17 +408,23 @@ def main():
         if d.is_dir() and not d.name.startswith("."):
             fm = parse_frontmatter(d)
             if fm:
+                fm["description"] = resolve_from_frontmatter(fm, d.name)
                 skills[fm.get("name", d.name)] = fm
 
     overlaps = compute_overlap(skills)
     clusters = find_clusters(overlaps, threshold=args.threshold)
 
     if args.json:
-        print(json.dumps({
-            "total_skills": len(skills),
-            "overlaps": overlaps,
-            "clusters": [sorted(c) for c in clusters],
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "total_skills": len(skills),
+                    "overlaps": overlaps,
+                    "clusters": [sorted(c) for c in clusters],
+                },
+                indent=2,
+            )
+        )
     else:
         print(generate_report(skills, overlaps, clusters))
 
