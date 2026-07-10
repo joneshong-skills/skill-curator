@@ -41,7 +41,7 @@ Principles:
 >
 > Preferred (Sandbox):
 > ```python
-> import sys; sys.path.insert(0, '/Users/joneshong/.claude/skills/skill-curator/scripts')
+> import os, sys; sys.path.insert(0, os.path.expanduser('~/.claude/skills/skill-curator/scripts'))
 > import analyze
 > result = analyze.run(threshold=0.3)
 > output(result)
