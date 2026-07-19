@@ -1,13 +1,9 @@
 ---
 name: skill-curator
-description: >-
-  This skill should be used when the user asks to "organize my skills",
-  "consolidate skills", "merge similar skills", "clean up skills",
-  "整理 skills", "收斂 skills", "skill 太多了", "哪些 skill 可以合併",
-  mentions skill redundancy, or discusses reviewing, reorganizing,
-  merging, or splitting their skill inventory.
+description: "skills, curator, organize, consolidate, merge, similar, clean, 整理 skills, 收斂 skills, skill 太多了, 哪些 skill 可以合併"
 version: 0.3.0
 tools: Read, Glob, Grep, Bash, Edit, Write, Task, sandbox_execute
+disable-model-invocation: true
 ---
 
 # Skill Curator
@@ -49,13 +45,13 @@ Principles:
 >
 > Fallback (Bash):
 > ```bash
-> python3 ~/.claude/skills/skill-curator/scripts/analyze.py --json --threshold 0.3
+> ~/.local/bin/python3 ~/.claude/skills/skill-curator/scripts/analyze.py --json --threshold 0.3
 > ```
 
 Run the overlap analysis to get clusters:
 
 ```bash
-python3 ~/.claude/skills/skill-curator/scripts/analyze.py
+~/.local/bin/python3 ~/.claude/skills/skill-curator/scripts/analyze.py
 ```
 
 Options: `--json` for machine-readable output, `--threshold 0.3` to adjust sensitivity.
@@ -197,8 +193,8 @@ Include enough context from both perspectives so the user can make an informed d
 
 #### Merge Procedure (A + B → C)
 
-1. Create archive: `mkdir -p ~/.claude/skills/.archived`
-2. Copy originals to archive: `cp -r A .archived/A-$(date +%Y%m%d)`
+1. Create archive: `mkdir -p ~/.claude/skills-archive`
+2. Copy originals to archive: `cp -r A ~/.claude/skills-archive/A-$(date +%Y%m%d)`
 3. Decide which skill directory to keep as C (typically the broader one)
 4. Merge SKILL.md content:
    - Union all trigger phrases in description
@@ -210,7 +206,7 @@ Include enough context from both perspectives so the user can make an informed d
 
 #### Split Procedure (X → Y + Z)
 
-1. Archive original: `cp -r X .archived/X-$(date +%Y%m%d)`
+1. Archive original: `cp -r X ~/.claude/skills-archive/X-$(date +%Y%m%d)`
 2. Create new skill directory for the split-off portion
 3. Partition trigger phrases — no overlapping triggers between Y and Z
 4. Move relevant scripts and references to each side
@@ -218,7 +214,7 @@ Include enough context from both perspectives so the user can make an informed d
 
 #### Retire Procedure
 
-1. Archive: `mv X .archived/X-$(date +%Y%m%d)`
+1. Archive: `mv X ~/.claude/skills-archive/X-$(date +%Y%m%d)`
 2. Search other skills for cross-references to X and update them
 
 ### Step 5: Verify
@@ -229,6 +225,37 @@ After all changes, re-run the analysis to confirm:
 - No new high-overlap clusters introduced
 - Total skill count reduced (or unchanged if only splitting)
 - All remaining skills pass validation
+
+### Step 6: Rules Audit (Optional Side-Pass)
+
+When curating skills, also surface drift in the rule files that drive them. Run:
+
+```bash
+~/.local/bin/python3 ~/.claude/skills/skill-curator/scripts/rules_scan.py            # markdown
+~/.local/bin/python3 ~/.claude/skills/skill-curator/scripts/rules_scan.py --json     # machine
+```
+
+The scanner walks `~/.claude/rules/*.md` and `~/workshop/.claude/rules/*.md` and reports
+three candidate buckets:
+
+| Bucket | Heuristic |
+|--------|-----------|
+| **Duplicates** | H2 segments across files with `SequenceMatcher` ratio ≥ 0.70 |
+| **Contradictions** | Same quoted keyword tagged with `never`/`禁止`/`不要` in one file and `always`/`必須`/`must` in another |
+| **Stale** | Git `last-modified > 180 days` AND no `--enforced--` / `--active--` marker |
+
+**Safety whitelist (hardcoded — NEVER scanned, NEVER flagged):**
+`bash-safety.md`, `security.md`, `skill-publishing-gate.md`, `agents.md`,
+`coding-discipline.md` (protects §4.1 Hypothesis Discipline).
+
+**Output handling — feed into the existing review queue, do not auto-edit:**
+- Candidates go into the same human-review path used for skill recommendations (Step 3 table).
+- The scanner only **flags**. It never invokes `Edit`/`Write` on rule files and never deletes.
+- If a candidate looks correct, the user (not this skill) decides to update or retire the rule.
+
+Backfire guard: this is intentionally a side-pass inside curator (not a Cronicle quarterly
+job) — the `session-archiver-stub-pollution` incident showed that scheduled audits with
+fuzzy metrics drift into noise.
 
 ## Quick Reference
 
@@ -259,7 +286,7 @@ This skill is **sandbox-optimized**. Batch operations run inside `sandbox_execut
 - **Batch SKILL.md reading**: Import `scripts/` in sandbox to read multiple skill frontmatter fields and build comparison data without per-file tool calls
 
 Fallback (Bash):
-- `python3 ~/.claude/skills/skill-curator/scripts/analyze.py` — run overlap analysis via Bash when sandbox is unavailable
+- `~/.local/bin/python3 ~/.claude/skills/skill-curator/scripts/analyze.py` — run overlap analysis via Bash when sandbox is unavailable
 
 Principle: **Deterministic batch work → sandbox; reasoning/presentation → LLM.**
 
@@ -295,4 +322,4 @@ Accumulated lessons signal when to run `/skill-optimizer` for a deeper structura
 
 ### Scripts
 - **`scripts/analyze.py`** — Scan all skills, compute overlap scores, identify clusters.
-  Usage: `python3 analyze.py [--skills-dir DIR] [--json] [--threshold N]`
+  Usage: `~/.local/bin/python3 analyze.py [--skills-dir DIR] [--json] [--threshold N]`

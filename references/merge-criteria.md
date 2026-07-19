@@ -83,7 +83,7 @@ When merging skills A + B → C:
 4. **Migrate scripts**: Copy unique scripts, merge overlapping ones
 5. **Migrate references**: Same approach as scripts
 6. **Update cross-references**: Search all other skills for mentions of A or B
-7. **Archive originals**: Move A and B to `~/.claude/skills/.archived/` (don't delete)
+7. **Archive originals**: Move A and B to `~/.claude/skills-archive/` (don't delete)
 8. **Validate**: Run quick_validate.py on C
 9. **Test**: Try 2-3 trigger phrases from both original skills
 
