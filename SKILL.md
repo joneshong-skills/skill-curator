@@ -223,6 +223,8 @@ Include enough context from both perspectives so the user can make an informed d
 
 ### Step 5: Verify
 
+**Safety-pin check**: Run `~/.local/bin/python3 ~/.claude/scripts/verify-safety-pins.py` before and after the restructuring — FAIL means a pinned anchor got deleted, roll back from the archive copy.
+
 After all changes, re-run the analysis to confirm:
 - No new high-overlap clusters introduced
 - Total skill count reduced (or unchanged if only splitting)
