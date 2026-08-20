@@ -2,7 +2,7 @@
 """Unit tests for rules_scan.py.
 
 All filesystem operations use TemporaryDirectory — the real ~/.claude/rules
-and ~/workshop/.claude/rules directories are never read from.
+and any project-local rules directories are never read from.
 
 Six-law alignment:
   #1 Mutation thinking  — safety whitelist enforcement, segment boundary on tiny fragments,

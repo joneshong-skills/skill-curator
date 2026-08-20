@@ -235,7 +235,7 @@ When curating skills, also surface drift in the rule files that drive them. Run:
 ~/.local/bin/python3 ~/.claude/skills/skill-curator/scripts/rules_scan.py --json     # machine
 ```
 
-The scanner walks `~/.claude/rules/*.md` and `~/workshop/.claude/rules/*.md` and reports
+The scanner walks `~/.claude/rules/*.md`, plus any extra rules directories you pass in, and reports
 three candidate buckets:
 
 | Bucket | Heuristic |

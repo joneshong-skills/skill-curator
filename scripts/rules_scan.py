@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Rules audit scanner for skill-curator.
 
-Scans ~/.claude/rules/*.md and ~/workshop/.claude/rules/*.md for:
+Scans ~/.claude/rules/*.md (plus any extra directories passed in) for:
   - Duplicates: rule fragments with high similarity (SequenceMatcher >= 0.70)
   - Contradictions: opposing prescriptions on the same keyword (never X vs always X)
   - Stale: files unchanged for > 180 days without --enforced-- / --active-- marker
